@@ -153,7 +153,17 @@ git clone https://github.com/DFRZ7/semana5-laboratorio-webapp-azure.git
 cd semana5-laboratorio-webapp-azure/sample-app
 ```
 
-### 9. Desplegar la Aplicación
+### 9. Configurar App Service
+
+```bash
+# Configurar startup file para que App Service sepa cómo ejecutar la aplicación
+az webapp config set \
+  --resource-group $RG \
+  --name $APP \
+  --startup-file "startup.sh"
+```
+
+### 10. Desplegar la Aplicación
 
 ```bash
 # Crear archivo ZIP con la aplicación
@@ -167,7 +177,7 @@ az webapp deployment source config-zip \
   --src app.zip
 ```
 
-### 10. Verificar el Despliegue
+### 11. Verificar el Despliegue
 
 ```bash
 # Obtener la URL de la aplicación
@@ -183,7 +193,7 @@ az webapp browse \
   --name $APP
 ```
 
-### 11. Monitorear la Aplicación
+### 12. Monitorear la Aplicación
 
 ```bash
 # Ver logs en tiempo real
@@ -197,7 +207,7 @@ az webapp config show \
   --name $APP
 ```
 
-### 12. Limpieza de Recursos
+### 13. Limpieza de Recursos
 
 ```bash
 # ⚠️ CUIDADO: Esto eliminará TODOS los recursos
