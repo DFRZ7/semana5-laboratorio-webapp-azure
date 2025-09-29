@@ -1,0 +1,15 @@
+# Flask Web Framework
+Flask==3.0.0
+
+# Azure Identity for Managed Identity authentication
+azure-identity==1.15.0
+
+# Azure Storage Blob client
+azure-storage-blob==12.19.0
+
+# Production WSGI server
+gunicorn==21.2.0
+
+# Optional: For PostgreSQL demo (uncomment if needed)
+# psycopg2-binary==2.9.7
+# azure-identity[postgresql]==1.15.0
