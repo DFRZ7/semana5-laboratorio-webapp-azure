@@ -22,10 +22,14 @@ Aprende a desplegar una aplicación Flask en Azure App Service utilizando **Mana
 
 ### 1. Configuración Inicial
 
+**¿Qué hace este paso?** Configuramos nuestra suscripción de Azure y verificamos que tenemos acceso.
+
 Abre Azure Cloud Shell desde el portal de Azure y ejecuta:
 
+⚠️ **IMPORTANTE**: NO copies las comillas ``` cuando pegues los comandos en Cloud Shell.
+
 ```bash
-# Configurar suscripción
+# Configurar suscripción (reemplaza <TU_SUBSCRIPTION_ID> con tu ID real)
 az account set --subscription "<TU_SUBSCRIPTION_ID>"
 
 # Verificar suscripción activa
@@ -33,6 +37,8 @@ az account show --query name -o tsv
 ```
 
 ### 2. Definir Variables de Entorno
+
+**¿Qué hace este paso?** Definimos nombres únicos para nuestros recursos usando variables. Esto evita conflictos con otros estudiantes y hace los comandos más fáciles de leer.
 
 ```bash
 # Variables del laboratorio
@@ -42,7 +48,7 @@ PLAN="plan-webapp-mi-lab"
 APP="webapp-mi-lab-$RANDOM"
 SA="st${RANDOM}milab"
 
-# Mostrar variables para verificar
+# Mostrar variables para verificar (IMPORTANTE: apunta estos valores)
 echo "Resource Group: $RG"
 echo "Location: $LOC"
 echo "App Service Plan: $PLAN"
@@ -52,18 +58,20 @@ echo "Storage Account: $SA"
 
 ### 3. Crear Recursos Base
 
+**¿Qué hace este paso?** Creamos la infraestructura básica: un grupo de recursos para organizar todo, un plan de App Service (la "máquina virtual" donde correrá nuestra app), y la Web App misma.
+
 ```bash
-# Crear grupo de recursos
+# Crear grupo de recursos (contenedor lógico para todos nuestros recursos)
 az group create --name $RG --location $LOC
 
-# Crear App Service Plan (Linux, B1)
+# Crear App Service Plan (define el tamaño y capacidad del servidor)
 az appservice plan create \
   --name $PLAN \
   --resource-group $RG \
   --sku B1 \
   --is-linux
 
-# Crear Web App con Python 3.10
+# Crear Web App (nuestra aplicación Flask)
 az webapp create \
   --name $APP \
   --resource-group $RG \
@@ -73,13 +81,15 @@ az webapp create \
 
 ### 4. Habilitar Managed Identity
 
+**¿Qué hace este paso?** Activamos la "identidad administrada" de nuestra Web App. Esto es como darle una "cédula de identidad" a nuestra aplicación para que pueda autenticarse automáticamente con otros servicios de Azure sin necesidad de passwords.
+
 ```bash
 # Asignar identidad administrada a la Web App
 az webapp identity assign \
   --resource-group $RG \
   --name $APP
 
-# Obtener el Principal ID de la identidad
+# Obtener el Principal ID (el "número de cédula" de nuestra app)
 PRINCIPAL_ID=$(az webapp identity show \
   --resource-group $RG \
   --name $APP \
@@ -91,22 +101,24 @@ echo "Principal ID: $PRINCIPAL_ID"
 
 ### 5. Crear Azure Storage Account
 
+**¿Qué hace este paso?** Creamos un "disco duro en la nube" (Storage Account) donde nuestra app guardará archivos. Luego le damos permiso a nuestra app para que pueda leer archivos de ahí.
+
 ```bash
-# Crear Storage Account
+# Crear Storage Account (almacenamiento en la nube)
 az storage account create \
   --name $SA \
   --resource-group $RG \
   --location $LOC \
   --sku Standard_LRS
 
-# Obtener el ID del Storage Account
+# Obtener el ID único del Storage Account
 STORAGE_ID=$(az storage account show \
   --name $SA \
   --resource-group $RG \
   --query id \
   --output tsv)
 
-# Asignar rol de Storage Blob Data Reader
+# Dar permiso a nuestra app para LEER archivos (principio de menor privilegio)
 az role assignment create \
   --assignee $PRINCIPAL_ID \
   --role "Storage Blob Data Reader" \
@@ -115,8 +127,10 @@ az role assignment create \
 
 ### 6. Crear Contenedor y Blob de Prueba
 
+**¿Qué hace este paso?** Creamos una "carpeta" (contenedor) en nuestro Storage Account y subimos un archivo de texto que nuestra app podrá leer para demostrar que Managed Identity funciona.
+
 ```bash
-# Crear contenedor
+# Crear contenedor (como una carpeta en el storage)
 az storage container create \
   --name "demo" \
   --account-name $SA \
@@ -137,8 +151,10 @@ rm demo.txt
 
 ### 7. Configurar Variables de Aplicación
 
+**¿Qué hace este paso?** Le decimos a nuestra Web App cuál es el nombre de nuestro Storage Account. La app leerá esta configuración cuando se ejecute.
+
 ```bash
-# Configurar el nombre del Storage Account en la Web App
+# Configurar el nombre del Storage Account como variable de entorno
 az webapp config appsettings set \
   --resource-group $RG \
   --name $APP \
@@ -147,16 +163,21 @@ az webapp config appsettings set \
 
 ### 8. Descargar y Preparar el Código
 
+**¿Qué hace este paso?** Descargamos el código de la aplicación Flask desde GitHub. Esta app ya está programada para usar Managed Identity.
+
 ```bash
-# Clonar el repositorio del laboratorio
+# Limpiar cualquier descarga anterior y descargar código actualizado
+rm -rf semana5-laboratorio-webapp-azure
 git clone https://github.com/DFRZ7/semana5-laboratorio-webapp-azure.git
 cd semana5-laboratorio-webapp-azure/sample-app
 ```
 
 ### 9. Configurar App Service
 
+**¿Qué hace este paso?** Le decimos a Azure cómo ejecutar nuestra aplicación Flask usando el archivo startup.sh que viene incluido en el código.
+
 ```bash
-# Configurar startup file para que App Service sepa cómo ejecutar la aplicación
+# Configurar archivo de inicio para que App Service sepa cómo ejecutar nuestra app
 az webapp config set \
   --resource-group $RG \
   --name $APP \
@@ -165,17 +186,21 @@ az webapp config set \
 
 ### 10. Desplegar la Aplicación
 
+**¿Qué hace este paso?** Empaquetamos nuestro código en un archivo ZIP y lo subimos a Azure. Azure instalará las dependencias y ejecutará nuestra app.
+
 ```bash
-# Crear archivo ZIP con la aplicación
+# Crear archivo ZIP con todos los archivos de la aplicación
 zip -r ../app.zip .
 cd ..
 
-# Desplegar usando Azure CLI
+# Desplegar a Azure (esto puede tomar 2-3 minutos)
 az webapp deployment source config-zip \
   --resource-group $RG \
   --name $APP \
   --src app.zip
 ```
+
+⏱️ **NOTA**: El despliegue puede tardar 2-3 minutos. Azure está instalando Python, las dependencias y configurando todo.
 
 ### 11. Verificar el Despliegue
 
