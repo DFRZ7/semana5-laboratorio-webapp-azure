@@ -40,7 +40,26 @@ az account set --subscription "<TU_SUBSCRIPTION_ID>"
 az account show --query name -o tsv
 ```
 
-### 2. Definir Variables de Entorno
+### 2. Registrar Proveedores de Recursos
+
+**¿Qué hace este paso?** Registramos los proveedores de recursos necesarios (Microsoft.Web y Microsoft.Storage) en nuestra suscripción. Sin esto, no podemos crear App Services ni Storage Accounts. Este proceso toma 2-3 minutos.
+
+```bash
+# Registrar proveedor para App Service
+az provider register --namespace Microsoft.Web
+
+# Registrar proveedor para Storage
+az provider register --namespace Microsoft.Storage
+
+# Verificar que estén registrados (espera hasta que aparezcan como "Registered")
+echo "Verificando registro de proveedores (puede tomar 2-3 minutos)..."
+az provider show --namespace Microsoft.Web --query registrationState -o tsv
+az provider show --namespace Microsoft.Storage --query registrationState -o tsv
+
+# Si no aparecen como "Registered", espera 1 minuto y vuelve a verificar
+```
+
+### 3. Definir Variables de Entorno
 
 **¿Qué hace este paso?** Generamos UN número aleatorio único y lo usamos para todos nuestros recursos. Esto garantiza que cada estudiante tenga nombres únicos pero coherentes, evitando conflictos cuando múltiples personas ejecuten el laboratorio simultáneamente.
 
@@ -143,8 +162,6 @@ az storage container create \
   --name "uploads" \
   --account-name $SA \
   --auth-mode login
-
-echo "✅ Contenedor 'uploads' creado para el FTP web"
 ```
 
 ### 7. Configurar Variables de Aplicación
@@ -210,10 +227,13 @@ az webapp show \
   --query defaultHostName \
   --output tsv
 
-# Abrir la aplicación en el navegador
-az webapp browse \
-  --resource-group $RG \
-  --name $APP
+# Para acceder a tu aplicación:
+# 1. Ve al Portal de Azure (portal.azure.com)
+# 2. Busca tu Resource Group: $RG
+# 3. Haz clic en tu App Service: $APP
+# 4. Haz clic en "Browse" o copia la URL que aparece
+
+echo "🌐 Tu aplicación está en: https://$APP.azurewebsites.net"
 ```
 
 ### 12. Monitorear la Aplicación
@@ -275,12 +295,19 @@ az group delete \
 # 1. Ir al directorio de la aplicación
 cd sample-app
 
-# 2. Editar el archivo app.py (puedes usar nano, vim, o descargar/editar)
+# 2. Editar el archivo app.py usando nano
 nano app.py
+
+# Comandos importantes de nano:
+# Ctrl + X  = Salir (te preguntará si quieres guardar)
+# Y         = Confirmar que SÍ quieres guardar
+# Enter     = Confirmar el nombre del archivo
+# Ctrl + O  = Guardar sin salir
 
 # 3. Hacer tus cambios personalizados (ver ejemplos abajo)
 
-# 4. Crear el ZIP actualizado
+# 4. Borrar ZIP anterior y crear uno nuevo (¡importante!)
+rm -f ../app.zip
 zip -r ../app.zip . -x "*.pyc" "__pycache__/*"
 
 # 5. Volver al directorio principal
@@ -294,6 +321,14 @@ az webapp deployment source config-zip \
 
 # 7. Ver los logs durante el despliegue
 az webapp log tail --name $APP --resource-group $RG
+
+# 8. Reiniciar la aplicación para asegurar cambios (opcional)
+az webapp restart --name $APP --resource-group $RG
+
+# 9. Ver tus cambios (importante para el cache del navegador)
+# - Abre tu aplicación en MODO INCÓGNITO
+# - O usa Ctrl+F5 para refrescar completamente
+# - URL: https://$APP.azurewebsites.net
 ```
 
 ### 💡 Ejemplos de Personalización
@@ -311,13 +346,13 @@ az webapp log tail --name $APP --resource-group $RG
 **Cambiar el color del tema:**
 
 ```css
-#Busca esta línea en el CSS: .header {
+#Buscaesta línea en el CSS: .header {
   color: #0066cc;
   border-bottom: 2px solid #0066cc;
   padding-bottom: 10px;
 }
 
-#Cámbiala por tu color favorito: .header {
+#Cámbialapor tu color favorito: .header {
   color: #ff6b35;
   border-bottom: 2px solid #ff6b35;
   padding-bottom: 10px;
@@ -347,7 +382,7 @@ az webapp log tail --name $APP --resource-group $RG
   margin: 5px;
 }
 
-#Prueba con: button {
+#Pruebacon: button {
   background: linear-gradient(45deg, #ff6b35, #f7931e);
   color: white;
   padding: 12px 24px;
